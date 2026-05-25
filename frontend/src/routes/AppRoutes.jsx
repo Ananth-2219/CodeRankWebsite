@@ -1,8 +1,8 @@
+import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import HomePage from "../pages/HomePage.jsx";
 import LeaderboardPage from "../pages/LeaderboardPage.jsx";
-import React from "react";
 
 function AppRoutes() {
   return (

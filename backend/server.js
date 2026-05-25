@@ -11,15 +11,28 @@ import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const allowedOrigins = (process.env.CLIENT_ORIGINS || "https://code-rank-website.vercel.app")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://code-rank-website.vercel.app"],
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("tiny"));
+
+app.use((req, _res, next) => {
+  console.log(req.method, req.originalUrl);
+  next();
+});
+
+app.get("/", (_req, res) => {
+  res.send("CodeRank Backend Running");
+});
 
 app.get("/api/health", (_req, res) => {
   res.json({
@@ -35,10 +48,13 @@ app.use("/api/leetcode", leetcodeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 
-app.use((_req, _res, next) => {
-  const error = new Error("Route not found");
-  error.statusCode = 404;
-  next(error);
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    statusCode: 404,
+    message: "Route not found",
+    path: req.originalUrl,
+  });
 });
 
 app.use((error, _req, res, _next) => {
