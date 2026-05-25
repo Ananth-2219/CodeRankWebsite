@@ -1,12 +1,8 @@
 import axios from "axios";
 
-
-
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL
+  baseURL: import.meta.env.VITE_API_URI || "http://localhost:5000/api",
 });
-
-export default api;
 
 export async function addUser(usernames) {
   const body = Object.fromEntries(
