@@ -3,7 +3,7 @@ import { RotateCcw, Send } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TextField from "../components/TextField.jsx";
-import { addUser } from "../services/api.js";
+import { addUser, rememberDeleteToken } from "../services/api.js";
 
 const initialForm = {
   codechef: "",
@@ -32,7 +32,8 @@ function HomePage() {
 
     setLoading(true);
     try {
-      await addUser(form);
+      const data = await addUser(form);
+      rememberDeleteToken(data.user?.id, data.deleteToken);
       setSuccess("User added. Fetching live rankings now.");
       setForm(initialForm);
       navigate("/leaderboard");

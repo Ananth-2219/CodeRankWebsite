@@ -1,6 +1,6 @@
 import React from "react";
 import { ExternalLink, Trash2 } from "lucide-react";
-import { deleteUser } from "../services/api.js";
+import { deleteUser, hasDeleteToken } from "../services/api.js";
 import { formatNumber, joinBadges } from "../utils/formatters.js";
 
 function LeaderboardTable({ rows, onRefresh }) {
@@ -23,44 +23,49 @@ function LeaderboardTable({ rows, onRefresh }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-          {rows.map((row) => (
-            <tr key={row.id} className="align-top hover:bg-slate-50 dark:hover:bg-slate-800/70">
-              <td className="px-4 py-4 text-lg font-bold">#{row.rank}</td>
-              <td className="px-4 py-4 font-bold text-emerald-600">{formatNumber(row.totalScore)}</td>
-              <td className="px-4 py-4">
-                <PlatformProfiles row={row} />
-                {row.errors?.length > 0 && (
-                  <div className="mt-2 text-xs text-red-500">
-                    {row.errors.map((error) => `${error.platform}: ${error.message}`).join(" | ")}
+          {rows.map((row) => {
+            const canDelete = hasDeleteToken(row.id);
+
+            return (
+              <tr key={row.id} className="align-top hover:bg-slate-50 dark:hover:bg-slate-800/70">
+                <td className="px-4 py-4 text-lg font-bold">#{row.rank}</td>
+                <td className="px-4 py-4 font-bold text-emerald-600">{formatNumber(row.totalScore)}</td>
+                <td className="px-4 py-4">
+                  <PlatformProfiles row={row} />
+                  {row.errors?.length > 0 && (
+                    <div className="mt-2 text-xs text-red-500">
+                      {row.errors.map((error) => `${error.platform}: ${error.message}`).join(" | ")}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-4">
+                  <div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300">
+                    <Metric label="Solved" value={row.problemsSolved} />
+                    <Metric label="Contests" value={row.contestsAttended} />
+                    <div className="max-w-72">
+                      <span className="font-semibold text-slate-700 dark:text-slate-200">Badges: </span>
+                      {joinBadges(row.badges)}
+                    </div>
                   </div>
-                )}
-              </td>
-              <td className="px-4 py-4">
-                <div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300">
-                  <Metric label="Solved" value={row.problemsSolved} />
-                  <Metric label="Contests" value={row.contestsAttended} />
-                  <div className="max-w-72">
-                    <span className="font-semibold text-slate-700 dark:text-slate-200">Badges: </span>
-                    {joinBadges(row.badges)}
-                  </div>
-                </div>
-              </td>
-              <td className="px-4 py-4">
-                <PlatformScores scores={row.platformScores} />
-              </td>
-              <td className="px-4 py-4">
-                <button
-                  type="button"
-                  onClick={() => removeRow(row.id)}
-                  className="grid h-9 w-9 place-items-center rounded-md border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-600 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-red-950/30"
-                  title="Remove user"
-                  aria-label="Remove user"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="px-4 py-4">
+                  <PlatformScores scores={row.platformScores} />
+                </td>
+                <td className="px-4 py-4">
+                  <button
+                    type="button"
+                    onClick={() => removeRow(row.id)}
+                    disabled={!canDelete}
+                    className="grid h-9 w-9 place-items-center rounded-md border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-600 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-red-950/30 dark:disabled:hover:bg-transparent dark:disabled:hover:text-slate-300"
+                    title={canDelete ? "Remove user" : "Only the browser that added this user can delete it"}
+                    aria-label={canDelete ? "Remove user" : "Delete unavailable for this user"}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

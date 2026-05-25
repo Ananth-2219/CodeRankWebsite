@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema(
       type: Object,
       default: {},
     },
+    deleteTokenHash: {
+      type: String,
+      default: "",
+      select: false,
+    },
     createdAt: {
       type: Date,
       default: Date.now,
@@ -39,6 +44,7 @@ const userSchema = new mongoose.Schema(
       transform: (_doc, ret) => {
         ret.id = ret._id.toString();
         delete ret._id;
+        delete ret.deleteTokenHash;
         return ret;
       },
     },

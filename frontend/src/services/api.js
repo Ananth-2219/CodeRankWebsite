@@ -11,6 +11,8 @@ const API = axios.create({
   baseURL: API_BASE_URL,
 });
 
+const DELETE_TOKENS_KEY = "codingrank_delete_tokens";
+
 API.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -36,13 +38,53 @@ export async function getUsers() {
 }
 
 export async function deleteUser(id) {
-  const { data } = await API.delete(`/api/users/${id}`);
+  const deleteToken = getDeleteToken(id);
+  const { data } = await API.delete(`/api/users/${id}`, {
+    headers: {
+      "x-delete-token": deleteToken,
+    },
+  });
+  removeDeleteToken(id);
   return data;
 }
 
 export async function getLeaderboard() {
   const { data } = await API.get("/api/leaderboard");
   return data;
+}
+
+export function rememberDeleteToken(userId, deleteToken) {
+  if (!userId || !deleteToken) return;
+
+  const tokens = readDeleteTokens();
+  tokens[userId] = deleteToken;
+  writeDeleteTokens(tokens);
+}
+
+export function hasDeleteToken(userId) {
+  return Boolean(getDeleteToken(userId));
+}
+
+function getDeleteToken(userId) {
+  return readDeleteTokens()[userId] || "";
+}
+
+function removeDeleteToken(userId) {
+  const tokens = readDeleteTokens();
+  delete tokens[userId];
+  writeDeleteTokens(tokens);
+}
+
+function readDeleteTokens() {
+  try {
+    return JSON.parse(window.localStorage.getItem(DELETE_TOKENS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeDeleteTokens(tokens) {
+  window.localStorage.setItem(DELETE_TOKENS_KEY, JSON.stringify(tokens));
 }
 
 export default API;
