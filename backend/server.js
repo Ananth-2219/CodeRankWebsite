@@ -16,9 +16,19 @@ const allowedOrigins = (process.env.CLIENT_ORIGINS || "http://localhost:5173,htt
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const allowedOriginPatterns = [
+  /^https:\/\/code-rank-website(?:-[a-z0-9-]+)?\.vercel\.app$/i,
+];
+
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin(origin, callback) {
+      if (!origin || isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked origin: ${origin}`));
+    },
     credentials: true,
   }),
 );
@@ -86,3 +96,7 @@ connectDB()
     console.error("Backend startup failed:", error.message);
     process.exit(1);
   });
+
+function isAllowedOrigin(origin) {
+  return allowedOrigins.includes(origin) || allowedOriginPatterns.some((pattern) => pattern.test(origin));
+}
