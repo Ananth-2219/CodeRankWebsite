@@ -54,11 +54,11 @@ export async function getLeaderboard() {
 
 export function rememberLatestAddedUser(userId) {
   if (!userId) return;
-  window.localStorage.setItem(LATEST_ADDED_USER_KEY, userId);
+  window.sessionStorage.setItem(LATEST_ADDED_USER_KEY, userId);
 }
 
 export function getLatestAddedUser() {
-  return window.localStorage.getItem(LATEST_ADDED_USER_KEY) || "";
+  return window.sessionStorage.getItem(LATEST_ADDED_USER_KEY) || "";
 }
 
 export default API;

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink, Sparkles, Trash2 } from "lucide-react";
 import { deleteUser, getLatestAddedUser } from "../services/api.js";
 import { formatNumber, joinBadges } from "../utils/formatters.js";
 
@@ -50,7 +50,7 @@ function LeaderboardTable({ rows, onRefresh }) {
         </thead>
         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
           {visibleRows.map((row) => (
-            <LeaderboardRow key={row.id} row={row} onRemove={removeRow} />
+            <LeaderboardRow key={row.id} row={row} onRemove={removeRow} highlighted={row.id === latestAddedUserId} />
           ))}
           {showLatestAddedRank && (
             <>
@@ -71,11 +71,21 @@ function LeaderboardTable({ rows, onRefresh }) {
 function LeaderboardRow({ row, onRemove, highlighted = false }) {
   return (
     <tr
-      className={`align-top hover:bg-slate-50 dark:hover:bg-slate-800/70 ${
-        highlighted ? "bg-emerald-50/70 dark:bg-emerald-950/20" : ""
+      className={`align-top transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70 ${
+        highlighted ? "bg-amber-50/80 ring-1 ring-inset ring-amber-300/70 dark:bg-amber-950/20 dark:ring-amber-500/40" : ""
       }`}
     >
-      <td className="px-4 py-4 text-lg font-bold">#{row.rank}</td>
+      <td className="px-4 py-4">
+        <div className="flex min-w-24 flex-col items-start gap-2">
+          <span className="text-lg font-bold">#{row.rank}</span>
+          {highlighted && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
+              <Sparkles className="h-3.5 w-3.5" />
+              Latest
+            </span>
+          )}
+        </div>
+      </td>
       <td className="px-4 py-4 font-bold text-emerald-600">{formatNumber(row.totalScore)}</td>
       <td className="px-4 py-4">
         <PlatformProfiles row={row} />
