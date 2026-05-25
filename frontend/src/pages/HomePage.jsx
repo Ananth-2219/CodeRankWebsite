@@ -62,18 +62,21 @@ function HomePage() {
             label="CodeChef username"
             value={form.codechef}
             placeholder="e.g. tourist"
+            link={{ label: "CodeChef", href: "https://www.codechef.com/" }}
             onChange={(codechef) => setForm((current) => ({ ...current, codechef }))}
           />
           <TextField
             label="Codeforces username"
             value={form.codeforces}
             placeholder="e.g. tourist"
+            link={{ label: "Codeforces", href: "https://codeforces.com/" }}
             onChange={(codeforces) => setForm((current) => ({ ...current, codeforces }))}
           />
           <TextField
             label="LeetCode username"
             value={form.leetcode}
             placeholder="e.g. leetcode"
+            link={{ label: "LeetCode", href: "https://leetcode.com/" }}
             onChange={(leetcode) => setForm((current) => ({ ...current, leetcode }))}
           />
 

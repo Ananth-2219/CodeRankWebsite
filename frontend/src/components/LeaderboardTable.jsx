@@ -1,8 +1,7 @@
 import React from "react";
-import { Trash2 } from "lucide-react";
+import { ExternalLink, Trash2 } from "lucide-react";
 import { deleteUser } from "../services/api.js";
 import { formatNumber, joinBadges } from "../utils/formatters.js";
-import ScoreBreakdown from "./ScoreBreakdown.jsx";
 
 function LeaderboardTable({ rows, onRefresh }) {
   async function removeRow(id) {
@@ -12,21 +11,14 @@ function LeaderboardTable({ rows, onRefresh }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[1180px] text-left text-sm">
+      <table className="w-full min-w-[860px] text-left text-sm">
         <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
           <tr>
             <th className="px-4 py-3">Rank</th>
             <th className="px-4 py-3">Total Score</th>
-            <th className="px-4 py-3">CodeChef</th>
-            <th className="px-4 py-3">CodeChef Rating</th>
-            <th className="px-4 py-3">Codeforces</th>
-            <th className="px-4 py-3">Codeforces Rating</th>
-            <th className="px-4 py-3">LeetCode</th>
-            <th className="px-4 py-3">LC Solved</th>
-            <th className="px-4 py-3">Solved</th>
-            <th className="px-4 py-3">Contests</th>
-            <th className="px-4 py-3">Badges</th>
-            <th className="px-4 py-3">Score Breakdown</th>
+            <th className="px-4 py-3">Profiles</th>
+            <th className="px-4 py-3">Activity</th>
+            <th className="px-4 py-3">Platform Scores</th>
             <th className="px-4 py-3">Actions</th>
           </tr>
         </thead>
@@ -35,22 +27,26 @@ function LeaderboardTable({ rows, onRefresh }) {
             <tr key={row.id} className="align-top hover:bg-slate-50 dark:hover:bg-slate-800/70">
               <td className="px-4 py-4 text-lg font-bold">#{row.rank}</td>
               <td className="px-4 py-4 font-bold text-emerald-600">{formatNumber(row.totalScore)}</td>
-              <td className="px-4 py-4">{row.platforms.codechef?.username || row.submittedUsernames.codechef || "-"}</td>
-              <td className="px-4 py-4">{formatNumber(row.platforms.codechef?.rating)}</td>
-              <td className="px-4 py-4">{row.platforms.codeforces?.handle || row.submittedUsernames.codeforces || "-"}</td>
-              <td className="px-4 py-4">{formatNumber(row.platforms.codeforces?.rating)}</td>
-              <td className="px-4 py-4">{row.platforms.leetcode?.username || row.submittedUsernames.leetcode || "-"}</td>
-              <td className="px-4 py-4">{formatNumber(row.platforms.leetcode?.totalSolved)}</td>
-              <td className="px-4 py-4">{formatNumber(row.problemsSolved)}</td>
-              <td className="px-4 py-4">{formatNumber(row.contestsAttended)}</td>
-              <td className="max-w-64 px-4 py-4 text-xs text-slate-600 dark:text-slate-300">{joinBadges(row.badges)}</td>
               <td className="px-4 py-4">
-                <ScoreBreakdown scores={row.platformScores} />
+                <PlatformProfiles row={row} />
                 {row.errors?.length > 0 && (
                   <div className="mt-2 text-xs text-red-500">
                     {row.errors.map((error) => `${error.platform}: ${error.message}`).join(" | ")}
                   </div>
                 )}
+              </td>
+              <td className="px-4 py-4">
+                <div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <Metric label="Solved" value={row.problemsSolved} />
+                  <Metric label="Contests" value={row.contestsAttended} />
+                  <div className="max-w-72">
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">Badges: </span>
+                    {joinBadges(row.badges)}
+                  </div>
+                </div>
+              </td>
+              <td className="px-4 py-4">
+                <PlatformScores scores={row.platformScores} />
               </td>
               <td className="px-4 py-4">
                 <button
@@ -69,6 +65,111 @@ function LeaderboardTable({ rows, onRefresh }) {
       </table>
     </div>
   );
+}
+
+function PlatformProfiles({ row }) {
+  const platforms = [
+    {
+      key: "codechef",
+      label: "CodeChef",
+      username: row.platforms.codechef?.username || row.submittedUsernames.codechef,
+      url: profileUrl("codechef", row.platforms.codechef?.username || row.submittedUsernames.codechef),
+      stats: [
+        ["Rating", row.platforms.codechef?.rating],
+        ["Problems", row.platforms.codechef?.problemsSolved],
+      ],
+    },
+    {
+      key: "codeforces",
+      label: "Codeforces",
+      username: row.platforms.codeforces?.handle || row.submittedUsernames.codeforces,
+      url: profileUrl("codeforces", row.platforms.codeforces?.handle || row.submittedUsernames.codeforces),
+      stats: [
+        ["Rating", row.platforms.codeforces?.rating],
+        ["Max", row.platforms.codeforces?.maxRating],
+      ],
+    },
+    {
+      key: "leetcode",
+      label: "LeetCode",
+      username: row.platforms.leetcode?.username || row.submittedUsernames.leetcode,
+      url: profileUrl("leetcode", row.platforms.leetcode?.username || row.submittedUsernames.leetcode),
+      stats: [
+        ["Solved", row.platforms.leetcode?.totalSolved],
+        ["Contest", row.platforms.leetcode?.contestRating],
+      ],
+    },
+  ];
+
+  return (
+    <div className="grid gap-2">
+      {platforms.map((platform) => (
+        <div key={platform.key} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="w-24 text-xs font-semibold text-slate-500 dark:text-slate-400">{platform.label}</span>
+          {platform.username ? (
+            <a
+              href={platform.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-w-0 items-center gap-1 font-semibold text-slate-900 hover:text-emerald-600 dark:text-slate-100 dark:hover:text-emerald-400"
+              title={`Open ${platform.label} profile`}
+            >
+              <span className="max-w-40 truncate">{platform.username}</span>
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+            </a>
+          ) : (
+            <span>-</span>
+          )}
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            {platform.stats.map(([label, value]) => `${label} ${formatNumber(value)}`).join(" | ")}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PlatformScores({ scores }) {
+  const platforms = [
+    ["CC", scores?.codechef?.totalScore],
+    ["CF", scores?.codeforces?.totalScore],
+    ["LC", scores?.leetcode?.totalScore],
+  ];
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {platforms.map(([label, value]) => (
+        <span
+          key={label}
+          className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+        >
+          {label}: {formatNumber(value || 0)}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function Metric({ label, value }) {
+  return (
+    <div>
+      <span className="font-semibold text-slate-700 dark:text-slate-200">{label}: </span>
+      {formatNumber(value)}
+    </div>
+  );
+}
+
+function profileUrl(platform, username) {
+  if (!username) return "#";
+
+  const encodedUsername = encodeURIComponent(username);
+  const urls = {
+    codechef: `https://www.codechef.com/users/${encodedUsername}`,
+    codeforces: `https://codeforces.com/profile/${encodedUsername}`,
+    leetcode: `https://leetcode.com/u/${encodedUsername}/`,
+  };
+
+  return urls[platform];
 }
 
 export default LeaderboardTable;
