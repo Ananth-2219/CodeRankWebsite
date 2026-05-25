@@ -1,7 +1,14 @@
 import axios from "axios";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URI || (import.meta.env.DEV ? "http://localhost:5000" : "");
+
+if (!API_BASE_URL) {
+  console.error("Missing frontend API base URL. Set VITE_API_URL or VITE_API_URI.");
+}
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
 });
 
 API.interceptors.response.use(

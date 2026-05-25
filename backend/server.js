@@ -11,7 +11,7 @@ import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const allowedOrigins = (process.env.CLIENT_ORIGINS || "https://code-rank-website.vercel.app")
+const allowedOrigins = (process.env.CLIENT_ORIGINS || "http://localhost:5173,https://code-rank-website.vercel.app")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
