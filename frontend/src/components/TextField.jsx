@@ -1,7 +1,7 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
 
-function TextField({ label, value, onChange, placeholder, link }) {
+function TextField({ label, value, onChange, placeholder, link, type = "text" }) {
   const id = label.toLowerCase().replace(/\s+/g, "-");
 
   return (
@@ -23,6 +23,7 @@ function TextField({ label, value, onChange, placeholder, link }) {
       </span>
       <input
         id={id}
+        type={type}
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}

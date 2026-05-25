@@ -11,7 +11,7 @@ const API = axios.create({
   baseURL: API_BASE_URL,
 });
 
-const DELETE_TOKENS_KEY = "codingrank_delete_tokens";
+const LATEST_ADDED_USER_KEY = "codingrank_latest_added_user";
 
 API.interceptors.response.use(
   (response) => response,
@@ -37,14 +37,13 @@ export async function getUsers() {
   return data.users || [];
 }
 
-export async function deleteUser(id) {
-  const deleteToken = getDeleteToken(id);
+export async function deleteUser(id, ownerCredentials) {
   const { data } = await API.delete(`/api/users/${id}`, {
     headers: {
-      "x-delete-token": deleteToken,
+      "x-owner-name": ownerCredentials.ownerName,
+      "x-owner-secret": ownerCredentials.ownerSecret,
     },
   });
-  removeDeleteToken(id);
   return data;
 }
 
@@ -53,38 +52,13 @@ export async function getLeaderboard() {
   return data;
 }
 
-export function rememberDeleteToken(userId, deleteToken) {
-  if (!userId || !deleteToken) return;
-
-  const tokens = readDeleteTokens();
-  tokens[userId] = deleteToken;
-  writeDeleteTokens(tokens);
+export function rememberLatestAddedUser(userId) {
+  if (!userId) return;
+  window.localStorage.setItem(LATEST_ADDED_USER_KEY, userId);
 }
 
-export function hasDeleteToken(userId) {
-  return Boolean(getDeleteToken(userId));
-}
-
-function getDeleteToken(userId) {
-  return readDeleteTokens()[userId] || "";
-}
-
-function removeDeleteToken(userId) {
-  const tokens = readDeleteTokens();
-  delete tokens[userId];
-  writeDeleteTokens(tokens);
-}
-
-function readDeleteTokens() {
-  try {
-    return JSON.parse(window.localStorage.getItem(DELETE_TOKENS_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function writeDeleteTokens(tokens) {
-  window.localStorage.setItem(DELETE_TOKENS_KEY, JSON.stringify(tokens));
+export function getLatestAddedUser() {
+  return window.localStorage.getItem(LATEST_ADDED_USER_KEY) || "";
 }
 
 export default API;

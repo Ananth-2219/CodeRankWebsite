@@ -31,6 +31,7 @@ router.post(
       codeforces: assertOptionalUsername(req.body.codeforces, "Codeforces username"),
       leetcode: assertOptionalUsername(req.body.leetcode, "LeetCode username"),
     };
+    const owner = parseOwnerCredentials(req.body);
 
     if (!payload.codechef && !payload.codeforces && !payload.leetcode) {
       throw createHttpError(400, "Submit at least one platform username.");
@@ -44,17 +45,18 @@ router.post(
       throw createHttpError(409, "This platform username combination already exists.");
     }
 
-    const deleteToken = crypto.randomBytes(32).toString("hex");
+    const ownerSecretSalt = crypto.randomBytes(16).toString("hex");
     const user = new User({
       ...payload,
-      deleteTokenHash: hashDeleteToken(deleteToken),
+      ownerName: owner.name,
+      ownerSecretHash: hashOwnerSecret(owner.secret, ownerSecretSalt),
+      ownerSecretSalt,
     });
     const savedUser = await user.save();
 
     res.status(201).json({
       message: "User added.",
       user: savedUser,
-      deleteToken,
     });
   }),
 );
@@ -66,20 +68,21 @@ router.delete(
       throw createHttpError(400, "Invalid user id.");
     }
 
-    const deleteToken = req.get("x-delete-token");
+    const owner = parseOwnerCredentials({
+      ownerName: req.get("x-owner-name"),
+      ownerSecret: req.get("x-owner-secret"),
+    });
 
-    if (!deleteToken) {
-      throw createHttpError(403, "Only the browser that added this user can delete it.");
-    }
-
-    const user = await User.findById(req.params.id).select("+deleteTokenHash");
+    const user = await User.findById(req.params.id).select("+ownerName +ownerSecretHash +ownerSecretSalt");
 
     if (!user) {
       throw createHttpError(404, "User entry not found.");
     }
 
-    if (!user.deleteTokenHash || user.deleteTokenHash !== hashDeleteToken(deleteToken)) {
-      throw createHttpError(403, "Only the browser that added this user can delete it.");
+    const submittedHash = hashOwnerSecret(owner.secret, user.ownerSecretSalt);
+
+    if (user.ownerName !== owner.name || !safeCompare(user.ownerSecretHash, submittedHash)) {
+      throw createHttpError(403, "Only the person who added this user can delete it.");
     }
 
     const deleted = await User.findByIdAndDelete(req.params.id);
@@ -110,10 +113,6 @@ function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function hashDeleteToken(token) {
-  return crypto.createHash("sha256").update(String(token)).digest("hex");
-}
-
 async function validateSubmittedProfiles(payload) {
   const checks = [
     payload.codechef && ["CodeChef", () => scrapeCodeChefProfile(payload.codechef)],
@@ -142,4 +141,32 @@ async function validateSubmittedProfiles(payload) {
       .map(({ platform, result }) => `${platform}: ${result.reason?.message || "Unable to verify username."}`)
       .join(" "),
   );
+}
+
+function parseOwnerCredentials(source) {
+  const name = normalizeOwnerName(source.ownerName);
+  const secret = String(source.ownerSecret || "").trim();
+
+  if (!name) {
+    throw createHttpError(400, "Enter your name to own and later delete this leaderboard entry.");
+  }
+
+  if (secret.length < 4) {
+    throw createHttpError(400, "Enter a deletion PIN with at least 4 characters.");
+  }
+
+  return { name, secret };
+}
+
+function normalizeOwnerName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function hashOwnerSecret(secret, salt) {
+  return crypto.createHash("sha256").update(`${salt}:${secret}`).digest("hex");
+}
+
+function safeCompare(left, right) {
+  if (!left || !right || left.length !== right.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(left), Buffer.from(right));
 }

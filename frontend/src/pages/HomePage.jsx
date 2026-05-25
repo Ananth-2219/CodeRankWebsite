@@ -3,9 +3,11 @@ import { RotateCcw, Send } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TextField from "../components/TextField.jsx";
-import { addUser, rememberDeleteToken } from "../services/api.js";
+import { addUser, rememberLatestAddedUser } from "../services/api.js";
 
 const initialForm = {
+  ownerName: "",
+  ownerSecret: "",
   codechef: "",
   codeforces: "",
   leetcode: "",
@@ -18,7 +20,7 @@ function HomePage() {
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
-  const hasUsername = Object.values(form).some((value) => value.trim());
+  const hasUsername = [form.codechef, form.codeforces, form.leetcode].some((value) => value.trim());
 
   async function submit(event) {
     event.preventDefault();
@@ -30,10 +32,15 @@ function HomePage() {
       return;
     }
 
+    if (!form.ownerName.trim() || form.ownerSecret.trim().length < 4) {
+      setError("Enter your name and a deletion PIN with at least 4 characters.");
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await addUser(form);
-      rememberDeleteToken(data.user?.id, data.deleteToken);
+      rememberLatestAddedUser(data.user?.id);
       setSuccess("User added. Fetching live rankings now.");
       setForm(initialForm);
       navigate("/leaderboard");
@@ -59,6 +66,19 @@ function HomePage() {
         </p>
 
         <form onSubmit={submit} className="mt-6 space-y-4">
+          <TextField
+            label="Your name"
+            value={form.ownerName}
+            placeholder="Used later to delete your entries"
+            onChange={(ownerName) => setForm((current) => ({ ...current, ownerName }))}
+          />
+          <TextField
+            label="Deletion PIN"
+            type="password"
+            value={form.ownerSecret}
+            placeholder="At least 4 characters"
+            onChange={(ownerSecret) => setForm((current) => ({ ...current, ownerSecret }))}
+          />
           <TextField
             label="CodeChef username"
             value={form.codechef}

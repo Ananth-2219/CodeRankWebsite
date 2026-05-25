@@ -25,7 +25,17 @@ const userSchema = new mongoose.Schema(
       type: Object,
       default: {},
     },
-    deleteTokenHash: {
+    ownerName: {
+      type: String,
+      default: "",
+      select: false,
+    },
+    ownerSecretHash: {
+      type: String,
+      default: "",
+      select: false,
+    },
+    ownerSecretSalt: {
       type: String,
       default: "",
       select: false,
@@ -44,7 +54,9 @@ const userSchema = new mongoose.Schema(
       transform: (_doc, ret) => {
         ret.id = ret._id.toString();
         delete ret._id;
-        delete ret.deleteTokenHash;
+        delete ret.ownerName;
+        delete ret.ownerSecretHash;
+        delete ret.ownerSecretSalt;
         return ret;
       },
     },

@@ -1,16 +1,42 @@
-import React from "react";
+import React, { useState } from "react";
 import { ExternalLink, Trash2 } from "lucide-react";
-import { deleteUser, hasDeleteToken } from "../services/api.js";
+import { deleteUser, getLatestAddedUser } from "../services/api.js";
 import { formatNumber, joinBadges } from "../utils/formatters.js";
 
+const LEADERBOARD_LIMIT = 15;
+
 function LeaderboardTable({ rows, onRefresh }) {
+  const [actionError, setActionError] = useState("");
+  const latestAddedUserId = getLatestAddedUser();
+  const shouldLimitRows = rows.length > LEADERBOARD_LIMIT;
+  const visibleRows = shouldLimitRows ? rows.slice(0, LEADERBOARD_LIMIT) : rows;
+  const latestAddedRow = shouldLimitRows ? rows.find((row) => row.id === latestAddedUserId) : null;
+  const showLatestAddedRank = latestAddedRow && latestAddedRow.rank > LEADERBOARD_LIMIT;
+
   async function removeRow(id) {
-    await deleteUser(id);
-    onRefresh();
+    setActionError("");
+
+    const ownerName = window.prompt("Enter the same name used when adding this user:");
+    if (!ownerName) return;
+
+    const ownerSecret = window.prompt("Enter the deletion PIN:");
+    if (!ownerSecret) return;
+
+    try {
+      await deleteUser(id, { ownerName, ownerSecret });
+      onRefresh();
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Unable to delete user.");
+    }
   }
 
   return (
     <div className="overflow-x-auto">
+      {actionError && (
+        <div className="border-b border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-950 dark:bg-red-950/30 dark:text-red-300">
+          {actionError}
+        </div>
+      )}
       <table className="w-full min-w-[860px] text-left text-sm">
         <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800 dark:text-slate-400">
           <tr>
@@ -23,52 +49,67 @@ function LeaderboardTable({ rows, onRefresh }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-          {rows.map((row) => {
-            const canDelete = hasDeleteToken(row.id);
-
-            return (
-              <tr key={row.id} className="align-top hover:bg-slate-50 dark:hover:bg-slate-800/70">
-                <td className="px-4 py-4 text-lg font-bold">#{row.rank}</td>
-                <td className="px-4 py-4 font-bold text-emerald-600">{formatNumber(row.totalScore)}</td>
-                <td className="px-4 py-4">
-                  <PlatformProfiles row={row} />
-                  {row.errors?.length > 0 && (
-                    <div className="mt-2 text-xs text-red-500">
-                      {row.errors.map((error) => `${error.platform}: ${error.message}`).join(" | ")}
-                    </div>
-                  )}
-                </td>
-                <td className="px-4 py-4">
-                  <div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300">
-                    <Metric label="Solved" value={row.problemsSolved} />
-                    <Metric label="Contests" value={row.contestsAttended} />
-                    <div className="max-w-72">
-                      <span className="font-semibold text-slate-700 dark:text-slate-200">Badges: </span>
-                      {joinBadges(row.badges)}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <PlatformScores scores={row.platformScores} />
-                </td>
-                <td className="px-4 py-4">
-                  <button
-                    type="button"
-                    onClick={() => removeRow(row.id)}
-                    disabled={!canDelete}
-                    className="grid h-9 w-9 place-items-center rounded-md border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-600 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-red-950/30 dark:disabled:hover:bg-transparent dark:disabled:hover:text-slate-300"
-                    title={canDelete ? "Remove user" : "Only the browser that added this user can delete it"}
-                    aria-label={canDelete ? "Remove user" : "Delete unavailable for this user"}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+          {visibleRows.map((row) => (
+            <LeaderboardRow key={row.id} row={row} onRemove={removeRow} />
+          ))}
+          {showLatestAddedRank && (
+            <>
+              <tr className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+                <td colSpan={6} className="px-4 py-3 font-semibold">
+                  Your rank
                 </td>
               </tr>
-            );
-          })}
+              <LeaderboardRow row={latestAddedRow} onRemove={removeRow} highlighted />
+            </>
+          )}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function LeaderboardRow({ row, onRemove, highlighted = false }) {
+  return (
+    <tr
+      className={`align-top hover:bg-slate-50 dark:hover:bg-slate-800/70 ${
+        highlighted ? "bg-emerald-50/70 dark:bg-emerald-950/20" : ""
+      }`}
+    >
+      <td className="px-4 py-4 text-lg font-bold">#{row.rank}</td>
+      <td className="px-4 py-4 font-bold text-emerald-600">{formatNumber(row.totalScore)}</td>
+      <td className="px-4 py-4">
+        <PlatformProfiles row={row} />
+        {row.errors?.length > 0 && (
+          <div className="mt-2 text-xs text-red-500">
+            {row.errors.map((error) => `${error.platform}: ${error.message}`).join(" | ")}
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-4">
+        <div className="grid gap-2 text-xs text-slate-600 dark:text-slate-300">
+          <Metric label="Solved" value={row.problemsSolved} />
+          <Metric label="Contests" value={row.contestsAttended} />
+          <div className="max-w-72">
+            <span className="font-semibold text-slate-700 dark:text-slate-200">Badges: </span>
+            {joinBadges(row.badges)}
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-4">
+        <PlatformScores scores={row.platformScores} />
+      </td>
+      <td className="px-4 py-4">
+        <button
+          type="button"
+          onClick={() => onRemove(row.id)}
+          className="grid h-9 w-9 place-items-center rounded-md border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-600 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-red-950/30"
+          title="Delete with owner name and PIN"
+          aria-label="Delete with owner name and PIN"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </td>
+    </tr>
   );
 }
 
