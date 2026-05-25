@@ -103,6 +103,7 @@ function unwrapPlatform(result) {
 
 function platformError(platform, result) {
   if (result.status !== "rejected") return null;
+  console.warn(`${platform} fetch failed: ${result.reason.message}`);
   return { platform, message: result.reason.message };
 }
 

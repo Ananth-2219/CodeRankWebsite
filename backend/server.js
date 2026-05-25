@@ -1,6 +1,7 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
+import morgan from "morgan";
 import { connectDB } from "./config/db.js";
 import codechefRoutes from "./routes/codechefRoutes.js";
 import codeforcesRoutes from "./routes/codeforcesRoutes.js";
@@ -9,15 +10,16 @@ import leetcodeRoutes from "./routes/leetcodeRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://code-rank-website.vercel.app"
-  ]
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://code-rank-website.vercel.app"],
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "1mb" }));
+app.use(morgan("tiny"));
 
 app.get("/api/health", (_req, res) => {
   res.json({
@@ -60,10 +62,11 @@ app.use((error, _req, res, _next) => {
 
 connectDB()
   .then(() => {
-    app.listen(port, () => {
-      console.log(`CodingRank backend running on port ${port}`);
+    app.listen(PORT, () => {
+      console.log(`CodingRank backend running on port ${PORT}`);
     });
   })
-  .catch(() => {
+  .catch((error) => {
+    console.error("Backend startup failed:", error.message);
     process.exit(1);
   });
